@@ -62,7 +62,8 @@ class Yolo:
                 l = "0"
             elif mapping is not None:
                 l = mapping[l]
-
+            if not l.isdigit():
+                raise ValueError("Label must be a number.")
             shape.append(f"{l} {x} {y} {w} {h}")
         
 

@@ -2,7 +2,7 @@ import json
 import numpy as np
 import cv2
 from typing import Dict
-
+import os
 
 from unibox import Dataset,Bbox
 
@@ -95,7 +95,7 @@ class Labelme:
             
             shape.append(Labelme.SHAPE_TEMPLATE.format(point=point, label=l))
         
-        img_path = dset.img_path
+        img_path = os.path.basename(dset.img_path)
         if img_path is None:
             raise ValueError("Image path is not defined.")
         

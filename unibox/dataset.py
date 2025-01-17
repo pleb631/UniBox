@@ -129,7 +129,7 @@ class Dataset:
         """       
         with open(outfile, "wb") as out_stream:
             stream = normalize_input(out_stream)
-            result = self.dump(out_stream, format, **kwargs)
+            result = self.dump(format, **kwargs)
             stream.write(result)
 
     def __repr__(self) -> str:

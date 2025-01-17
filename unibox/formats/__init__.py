@@ -22,6 +22,7 @@ class Registry:
         # Registration ordering matters for autodetection.
         self.register('labelme', "unibox.formats.labelme.Labelme")
         self.register('yolo', "unibox.formats.yolo.Yolo")
+        self.register('voc', "unibox.formats.voc.VOC")
 
  
 
@@ -42,6 +43,8 @@ class Registry:
 registry = Registry()
 
 
+
+    
 # import_set
 # 在读入lb数据时，应该把box转换为Bbox并存入，其他必要的信息按字典形式存入self._data
 # 部分数据集没有图片路径，需要在读入时存入
