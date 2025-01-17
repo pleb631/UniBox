@@ -7,7 +7,6 @@ from unibox.formats import registry
 from unibox.utils import normalize_input
 
 
-
 class Dataset:
     def __init__(self, img_path: str | Path = None, flag: str = None) -> None:
         self._img_path: str = str(img_path) if img_path is not None else None
@@ -36,7 +35,7 @@ class Dataset:
         self._img_path = str(img_path)
 
     @property
-    def label(self) -> List[Bbox]:
+    def anno(self) -> List[Bbox]:
         return self._data["data"].copy()
 
     def remove_label(self, index: int):
@@ -103,14 +102,14 @@ class Dataset:
 
     def dump(self, format: str, **kwargs):
         """
-            Export the dataset in the specified format.
+        Export the dataset in the specified format.
 
-            Args:
-                format (str): The format to export the dataset in.
-                **kwargs: Additional keyword arguments to pass to the export function.
+        Args:
+            format (str): The format to export the dataset in.
+            **kwargs: Additional keyword arguments to pass to the export function.
 
-            Returns:
-                bytes: The exported dataset as bytes.
+        Returns:
+            bytes: The exported dataset as bytes.
         """
         fmt = registry.get_format(format)
         if not hasattr(fmt, "export_set"):
@@ -130,7 +129,7 @@ class Dataset:
             outfile (str | Path): The path to the output file.
             format (str): The format in which to save the dataset.
             **kwargs: Additional keyword arguments to be passed to the dump method.
-        """       
+        """
         with open(outfile, "wb") as out_stream:
             stream = normalize_input(out_stream)
             result = self.dump(format, **kwargs)

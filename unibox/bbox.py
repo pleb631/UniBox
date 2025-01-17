@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 class Bbox:
     """
     Bbox class represents a bounding box with various formats and conversions.
@@ -30,13 +29,12 @@ class Bbox:
         ltwh2ltrb: Converts the bounding box coordinates from "ltwh" format to "ltrb" format.
         get_safe_box: Converts the bounding box coordinates from one format to another with clipping.
 
-    
+
     Usage:
         box = Bbox([0.1, 0.2, 0.3, 0.4], "ltrb", is_pixel_distance=True, img_shape=[100, 100], info={"label": "car"})
         box.ltrb(is_pixel_distance=True)
 
     """
-
 
     _formats: list = ["ltrb", "xywh", "ltwh"]
 
@@ -45,6 +43,7 @@ class Bbox:
         box: list | np.ndarray,
         format: str,
         is_pixel_distance: bool = True,
+        label: str|int = None,
         img_shape: list | np.ndarray | None = None,  # [w,h]
         info: dict | None = None,
     ) -> None:
@@ -63,15 +62,23 @@ class Bbox:
         )
 
         bbox = Bbox.convert(box, format, "ltrb")
-        x1,y1,x2,y2=bbox
-        if x1>x2 or y1>y2:
+        x1, y1, x2, y2 = bbox
+        if x1 > x2 or y1 > y2:
             raise ValueError(f"Invalid bounding box format,with {bbox}")
         self._bbox = bbox
-        
+
         self._img_shape = img_shape
         self._is_pixel_distance = is_pixel_distance
-        if info is None:
-            info = {"label":"0"}
+
+        if label is None:
+            self._label = "0"
+        elif isinstance(label, str):
+            self._label = label
+        elif isinstance(label, int):
+                self._label = str(label)
+        else:
+            raise ValueError("Label must be a string")
+            
         self._info = info
 
     def _check_input_corrcetness(
@@ -99,7 +106,9 @@ class Bbox:
 
             if len(img_shape) != 2:
                 raise ValueError("img_shape must have 2 elements")
-            if not isinstance(img_shape[0], np.int32) or not isinstance(img_shape[1], np.int32):
+            if not isinstance(img_shape[0], np.int32) or not isinstance(
+                img_shape[1], np.int32
+            ):
                 raise ValueError("img_shape elements must be integers")
 
         if format not in Bbox._formats:
@@ -113,18 +122,18 @@ class Bbox:
                     f"is_pixel_distance is {is_pixel_distance}, Bounding box must have values between 0 and 1,but {bbox}"
                 )
         elif np.all(bbox < 1.0):
-                raise ValueError(
-                    f"is_pixel_distance is {is_pixel_distance}, Bounding box is not corrent pixel format:{bbox}"
-                )
+            raise ValueError(
+                f"is_pixel_distance is {is_pixel_distance}, Bounding box is not corrent pixel format:{bbox}"
+            )
 
         return bbox, img_shape
 
-    def ltrb(self, is_pixel_distance: bool = True,img_shape=None) -> np.ndarray:
+    def ltrb(self, is_pixel_distance: bool = True, img_shape=None) -> np.ndarray:
         if is_pixel_distance == self._is_pixel_distance:
             return self._bbox
         shape = img_shape if self._img_shape is None else self._img_shape
         if shape is not None:
-                
+
             return (
                 self.norm2pixel(self._bbox, shape)
                 if is_pixel_distance
@@ -135,16 +144,22 @@ class Bbox:
                 "img_shape is not provided, cannot convert box between normalized and pixel"
             )
 
+    def xywh(self, is_pixel_distance: bool = True, img_shape=None) -> np.ndarray:
+        box = self.ltrb(is_pixel_distance, img_shape)
+        box = Bbox.convert(box, "ltrb", "xywh")
+        return box
 
-    def xywh(self, is_pixel_distance: bool = True,img_shape=None) -> np.ndarray:
-        box = self.ltrb(is_pixel_distance,img_shape)
-        box = Bbox.convert(box, "ltrb", 'xywh')
-        return box  
-    
-    
     # @property
     def img_wh(self) -> list | np.ndarray:
         return self._img_shape
+
+    @property
+    def label(self):
+        return self._label
+
+    @label.setter
+    def setlabel(self, x: str) -> str:
+        self._label = x
 
     @staticmethod
     def norm2pixel(bbox: list | np.ndarray, img_shape: list | np.ndarray) -> np.ndarray:
@@ -184,11 +199,10 @@ class Bbox:
 
         return bbox / [img_shape[0], img_shape[1], img_shape[0], img_shape[1]]
 
-
     @property
     def info(self) -> dict:
         return self._info
-    
+
     @staticmethod
     def convert(box: np.ndarray, srcf: str, dstf: str):
         if srcf not in Bbox._formats:
@@ -208,9 +222,8 @@ class Bbox:
                 raise NotImplementedError(
                     f"Conversion from {srcf} to {dstf} is not implemented"
                 )
-                
+
             box = func(box)
-            
 
         return box
 
@@ -247,7 +260,6 @@ class Bbox:
         y[..., 2] = x[..., 2] + x[..., 0]  # width
         y[..., 3] = x[..., 3] + x[..., 1]  # height
         return y
-    
 
     @staticmethod
     def get_safe_box(
@@ -258,7 +270,7 @@ class Bbox:
         is_pixel_distance: bool,
         is_dst_pixel_distance: bool,
     ):
-        box = Bbox(box, src_format, is_pixel_distance, img_shape)
+        box:Bbox = Bbox(box, src_format, is_pixel_distance, img_shape=img_shape)
         box = box.ltrb(is_dst_pixel_distance)
         box = Bbox.convert(box, "ltrb", dst_format)
 
@@ -275,6 +287,6 @@ class Bbox:
                     "img_shape is not provided, cannot clip box to image boundaries"
                 )
         return box
-    
+
     def __repr__(self) -> str:
         return f"xywh=[{self._bbox[0]:.2f},{self._bbox[1]:.2f},{self._bbox[2]:.2f},{self._bbox[3]:.2f}], [w,h]={self._img_shape}, info={self._info}\n"

@@ -4,7 +4,8 @@ import cv2
 from typing import Dict
 import os
 
-from unibox import Dataset,Bbox
+from unibox import Dataset, Bbox
+
 
 class Labelme:
     SHAPE_TEMPLATE = """\
@@ -17,7 +18,7 @@ class Labelme:
       "flags": {{}}, \
       "mask": null \
     }}"""
-    
+
     TABLE_TEMPLATE = """\
     {{
     "version": "5.6.0",
@@ -30,14 +31,12 @@ class Labelme:
     }}"""
 
     @staticmethod
-    def import_set(dset:Dataset, in_stream,base64=False,**kwargs):
-        
+    def import_set(dset: Dataset, in_stream, base64=False, **kwargs):
         """Returns dataset from JSON stream."""
         dset.clear()
 
+        json_data = json.loads(in_stream.read().decode("utf-8"))
 
-        json_data = json.loads(in_stream.read().decode('utf-8'))
-        
         shapes = json_data["shapes"]
         imageHeight = json_data["imageHeight"]
         imageWidth = json_data["imageWidth"]
@@ -50,25 +49,24 @@ class Labelme:
             if shape["shape_type"] == "rectangle":
                 label = shape["label"]
                 points = np.array(shape["points"]).reshape(-1, 2)
-                
- 
+
                 x1, y1 = points.min(axis=0)
                 x2, y2 = points.max(axis=0)
-                
+
                 bbox = Bbox(
                     [x1, y1, x2, y2],
                     "ltrb",
                     is_pixel_distance=True,
+                    label=label,
                     img_shape=[imageWidth, imageHeight],
-                    info={"label": label}
                 )
                 dset.append(bbox)
 
     @staticmethod
-    def export_set(dset:Dataset,mapping:Dict=None,**kwargs):
+    def export_set(dset: Dataset, mapping: Dict = None, **kwargs):
         """Writes dataset to JSON stream."""
         shape = []
-        
+
         if dset["img_shape"] is None:
             img_wh = dset.label[0].img_wh()
             if img_wh is None:
@@ -81,29 +79,28 @@ class Labelme:
                 dset["img_shape"] = img_wh
 
         img_wh = dset["img_shape"]
-      
-        
 
-        for bbox in dset.label:
-            x1, y1, x2, y2 = bbox.ltrb(is_pixel_distance=True,img_shape = img_wh).tolist()
-            l = bbox.info.get('label', None)
+        for bbox in dset.anno:
+            x1, y1, x2, y2 = bbox.ltrb(
+                is_pixel_distance=True, img_shape=img_wh
+            ).tolist()
+            l = bbox.label
             if l is None:
                 l = "0"
             elif mapping is not None:
                 l = mapping[l]
             point = [[x1, y1], [x2, y2]]
-            
+
             shape.append(Labelme.SHAPE_TEMPLATE.format(point=point, label=l))
-        
+
         img_path = os.path.basename(dset.img_path)
         if img_path is None:
             raise ValueError("Image path is not defined.")
-        
-        
+
         result = Labelme.TABLE_TEMPLATE.format(
-            shape=",".join(shape), 
-            imageHeight=img_wh[1], 
+            shape=",".join(shape),
+            imageHeight=img_wh[1],
             imageWidth=img_wh[0],
-            imagePath=img_path
+            imagePath=img_path,
         )
         return json.dumps(json.loads(result), ensure_ascii=False, indent=4)
