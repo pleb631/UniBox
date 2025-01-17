@@ -70,6 +70,8 @@ class Bbox:
         
         self._img_shape = img_shape
         self._is_pixel_distance = is_pixel_distance
+        if info is None:
+            info = {"label":"0"}
         self._info = info
 
     def _check_input_corrcetness(
@@ -134,8 +136,8 @@ class Bbox:
             )
 
 
-    def xywh(self, is_pixel_distance: bool = True) -> np.ndarray:
-        box = self.ltrb(is_pixel_distance)
+    def xywh(self, is_pixel_distance: bool = True,img_shape=None) -> np.ndarray:
+        box = self.ltrb(is_pixel_distance,img_shape)
         box = Bbox.convert(box, "ltrb", 'xywh')
         return box  
     

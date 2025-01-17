@@ -1,7 +1,7 @@
 [project]
 name = "unibox"
 version = "0.1.0"
-description = "Add your description here"
+description = "UniBox is a simple and efficient dataset management tool that supports conversion and processing of multiple formats, aiming to simplify the management and usage of det-datasets."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

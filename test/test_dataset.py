@@ -1,8 +1,6 @@
 import unittest
-from io import BytesIO
-from unibox.formats import registry
-from unibox.utils import normalize_input
-from unibox.dataset import Dataset
+from pathlib import Path
+from unibox import Bbox,Dataset
 
 
 class TestDataset(unittest.TestCase):
@@ -10,84 +8,100 @@ class TestDataset(unittest.TestCase):
     def setUp(self):
         self.dataset = Dataset()
 
-    def test_append_and_label(self):
-        self.dataset.append("label1")
-        self.dataset.append("label2")
-        self.assertEqual(self.dataset.label, ["label1", "label2"])
+    def test_init(self):
+        self.assertIsNone(self.dataset.img_path)
+        self.assertEqual(self.dataset.label, [])
+        self.assertEqual(self.dataset["label_path"], None)
+
+    def test_append(self):
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True)
+        self.dataset.append(bbox)
+        self.assertEqual(len(self.dataset), 1)
+        self.assertEqual(self.dataset.label[0], bbox)
+
+    def test_img_path_property(self):
+        path = "/path/to/image.jpg"
+        self.dataset.img_path = path
+        self.assertEqual(self.dataset.img_path, path)
+
+    def test_img_path_setter_none(self):
+        with self.assertRaises(ValueError):
+            self.dataset.img_path = None
+
+    def test_label_property(self):
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True)
+        self.dataset.append(bbox)
+        self.assertEqual(len(self.dataset.label), 1)
+        self.assertEqual(self.dataset.label[0], bbox)
 
     def test_remove_label(self):
-        self.dataset.append("label1")
-        self.dataset.append("label2")
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True)
+        self.dataset.append(bbox)
         self.dataset.remove_label(0)
-        self.assertEqual(self.dataset.label, ["label2"])
+        self.assertEqual(len(self.dataset), 0)
 
     def test_set_label(self):
-        self.dataset.append("label1")
-        self.dataset.append("label2")
-        self.dataset.set_label(1, "new_label")
-        self.assertEqual(self.dataset.label, ["label1", "new_label"])
+        bbox1 = Bbox([0, 0, 10, 10], "ltrb", True)
+        bbox2 = Bbox([10, 10, 20, 20], "ltrb", True)
+        self.dataset.append(bbox1)
+        self.dataset.set_label(0, bbox2)
+        self.assertEqual(self.dataset.label[0], bbox2)
 
-    def test_set_label_out_of_range(self):
-        self.dataset.append("label1")
-        self.dataset.append("label2")
+    def test_set_label_index_out_of_range(self):
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True)
+        self.dataset.append(bbox)
         with self.assertRaises(IndexError):
-            self.dataset.set_label(5, "new_label")
+            self.dataset.set_label(1, bbox)
 
     def test_clear(self):
-        self.dataset.append("label1")
-        self.dataset.append("label2")
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True)
+        self.dataset.append(bbox)
         self.dataset.clear()
-        self.assertEqual(self.dataset.label, [])
-        self.assertEqual(self.dataset._data["info"], {})
+        self.assertEqual(len(self.dataset), 0)
+        self.assertEqual(self.dataset.img_path, None)
+        self.assertEqual(self.dataset["label_path"], None)
 
-    def test_get_set_item(self):
-        self.dataset["key"] = "value"
-        self.assertEqual(self.dataset["key"], "value")
+    def test_getitem(self):
+        self.dataset["label_path"] = "/path/to/label.txt"
+        self.assertEqual(self.dataset["label_path"], "/path/to/label.txt")
 
-    def test_del_item(self):
-        self.dataset["key"] = "value"
-        del self.dataset["key"]
-        with self.assertRaises(KeyError):
-            _ = self.dataset["key"]
+    def test_setitem(self):
+        self.dataset["label_path"] = "/path/to/label.txt"
+        self.assertEqual(self.dataset["label_path"], "/path/to/label.txt")
+
+    def test_delitem(self):
+        self.dataset["label_path"] = "/path/to/label.txt"
+        del self.dataset["label_path"]
+        self.assertIsNone(self.dataset["label_path"])
 
     def test_update(self):
-        self.dataset.update(key1="value1", key2="value2")
-        self.assertEqual(self.dataset._data["info"], {"key1": "value1", "key2": "value2"})
+        self.dataset.update(label_path="/path/to/label.txt")
+        self.assertEqual(self.dataset["label_path"], "/path/to/label.txt")
 
     def test_len(self):
-        self.dataset.append("label1")
-        self.dataset.append("label2")
-        self.assertEqual(len(self.dataset), 2)
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True)
+        self.dataset.append(bbox)
+        self.assertEqual(len(self.dataset), 1)
 
-    # def test_load(self):
-    #     # Mocking the import_set function
-    #     class MockFormat:
-    #         @staticmethod
-    #         def import_set(dataset, stream, **kwargs):
-    #             dataset.append("mock_label")
+    def test_load_no_input(self):
+        with self.assertRaises(ValueError):
+            self.dataset.load("format")
 
-    #     registry.register_format("mock", MockFormat)
-    #     stream = BytesIO(b"mock_data")
-    #     self.dataset.load(stream, format="mock")
-    #     self.assertEqual(self.dataset.label, ["mock_label"])
+    def test_load_invalid_format(self):
+        with self.assertRaises(FileNotFoundError):
+            self.dataset.load("invalid_format", lb_path="path/to/label.txt")
 
-    # def test_dump(self):
-    #     # Mocking the export_set function
-    #     class MockFormat:
-    #         @staticmethod
-    #         def export_set(dataset, **kwargs):
-    #             return "mock_data"
+    def test_dump_invalid_format(self):
+        with self.assertRaises(ImportError):
+            self.dataset.dump("invalid_format")
 
-    #     registry.register_format("mock", MockFormat)
-    #     stream = BytesIO()
-    #     self.dataset.append("label1")
-    #     self.dataset.dump(stream, format="mock")
-    #     self.assertEqual(stream.getvalue(), b"mock_data")
-
-    def test_repr(self):
-        self.dataset.append("label1")
-        self.dataset["key"] = "value"
-        self.assertEqual(repr(self.dataset), "{'data': ['label1'], 'info': {'key': 'value'}}")
+    def test_save(self):
+        bbox = Bbox([0, 0, 10, 10], "ltrb", True,[30,30])
+        self.dataset.append(bbox)
+        path = Path("test_output.txt")
+        self.dataset.save(path, "yolo")
+        self.assertTrue(path.exists())
+        path.unlink()
 
 if __name__ == "__main__":
     unittest.main()

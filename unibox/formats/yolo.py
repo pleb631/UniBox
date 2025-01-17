@@ -27,7 +27,7 @@ class Yolo:
                     img = cv2.imdecode(np.fromfile(img_path, np.uint8), 1)
                     img_shape = [img.shape[1], img.shape[0]]
 
-            bbox = Bbox([x, y, w, h], "ltwh", False,img_shape,info)
+            bbox = Bbox([x, y, w, h], "xywh", False,img_shape,info)
             dset.append(bbox)
 
 
@@ -40,7 +40,7 @@ class Yolo:
         
         shape = []
         
-        if dset["img_shape"] is None:
+        if dset["img_shape"] is not None:
             img_wh = dset.label[0].img_wh()
             if img_wh is None:
                 if dset.img_path is None:
@@ -56,7 +56,7 @@ class Yolo:
         
 
         for bbox in dset.label:
-            x,y,w,h = bbox.xywh(is_pixel_distance=False).tolist()
+            x,y,w,h = bbox.xywh(is_pixel_distance=False,img_shape=img_wh).tolist()
             l = bbox.info.get("label",None)
             if l is None:
                 l = "0"

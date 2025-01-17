@@ -1,5 +1,6 @@
 from typing import List, Any, Dict
 from pathlib import Path
+import os
 
 from unibox import Bbox
 from unibox.formats import registry
@@ -18,6 +19,7 @@ class Dataset:
         }
 
         self.flag = flag
+        self.clear()
         # optional: img_shape = [w,h]
 
     def append(self, label: Bbox):
@@ -82,6 +84,8 @@ class Dataset:
         if lb_path is None and in_stream is None:
             raise ValueError("Either lb_path or in_stream must be provided.")
         if in_stream is None:
+            if not os.path.isfile(lb_path):
+                raise FileNotFoundError(f"File {lb_path} not found.")
             with open(lb_path, "rb") as file:
                 in_stream = file.read()
 
